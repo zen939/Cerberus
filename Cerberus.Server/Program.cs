@@ -21,6 +21,18 @@ builder.Services.AddHostedService<OfflineMonitor>();
 
 var app = builder.Build();
 
+// 啟動時檢查金鑰策略：共用 DefaultKey 不安全，提醒改用每台獨立 HostKeys
+{
+    var opts = app.Services.GetRequiredService<IOptions<ServerOptions>>().Value;
+    var startupLog = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+    if (!string.IsNullOrEmpty(opts.DefaultKey))
+        startupLog.LogWarning("偵測到共用 DefaultKey：一台外洩即全體淪陷。正式環境請改用每台獨立 HostKeys 並清空 DefaultKey（見 tools\\New-HostKey.ps1）。");
+    else if (opts.HostKeys.Count == 0)
+        startupLog.LogWarning("尚未設定任何 HostKeys，且 DefaultKey 為空：所有 Agent 請求都會被拒絕。");
+    else
+        startupLog.LogInformation("金鑰策略：每台獨立 HostKeys（{Count} 台已註冊）。", opts.HostKeys.Count);
+}
+
 // 管理介面靜態頁（wwwroot/index.html）
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -51,11 +63,16 @@ static async Task<string?> VerifyAsync(HttpContext ctx, IOptionsMonitor<ServerOp
         return null;
     }
 
-    if (!options.HostKeys.TryGetValue(host, out var key) || string.IsNullOrEmpty(key))
+    bool perHost = options.HostKeys.TryGetValue(host, out var key) && !string.IsNullOrEmpty(key);
+    if (!perHost)
         key = options.DefaultKey;
 
     if (string.IsNullOrEmpty(key) || !HmacSigner.Verify(key, ts, body, signature))
     {
+        // 未註冊於 HostKeys 且無（或不符）共用金鑰 → 拒絕，記錄以利稽核
+        ctx.RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Auth")
+            .LogWarning("拒絕主機 {Host} 的請求（簽章驗證失敗或未註冊金鑰）", host);
         ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
         return null;
     }
