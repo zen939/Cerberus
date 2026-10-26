@@ -20,6 +20,12 @@ public sealed class CerberusOptions
     /// <summary>本機 HMAC 金鑰，需與 Server 端 HostKeys / DefaultKey 一致。</summary>
     public string HostKey { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Server TLS 憑證指紋（SHA-1，十六進位）。設定後 Agent 只信任此指紋的憑證，
+    /// 即使自簽也安全、且可抵擋中間人；留空則走作業系統預設憑證驗證。
+    /// </summary>
+    public string ServerCertThumbprint { get; set; } = string.Empty;
+
     public int ScanIntervalSeconds { get; set; } = 3;
 
     public int HeartbeatIntervalSeconds { get; set; } = 60;
