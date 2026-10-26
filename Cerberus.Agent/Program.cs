@@ -30,6 +30,7 @@ builder.Services.AddHostedService<RdpGuard>();
 builder.Services.AddHostedService<HeartbeatWorker>();
 builder.Services.AddHostedService<CommandWorker>();
 builder.Services.AddHostedService<DefenderThreatWatcher>();
+builder.Services.AddHostedService<LoginWatcher>();
 
 var host = builder.Build();
 host.Run();

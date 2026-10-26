@@ -34,6 +34,14 @@ public sealed class CerberusOptions
 
     public int DefenderThreatPollSeconds { get; set; } = 60;
 
+    /// <summary>監看 Windows 安全性事件，偵測異常登入（暴力破解、遠端桌面登入、帳號鎖定）。</summary>
+    public bool WatchLogons { get; set; } = true;
+
+    /// <summary>同一帳號在時間窗內登入失敗達此次數即視為暴力破解。</summary>
+    public int FailedLogonThreshold { get; set; } = 5;
+
+    public int FailedLogonWindowMinutes { get; set; } = 5;
+
     /// <summary>巡檢本機遠端桌面（fDenyTSConnections）。</summary>
     public bool GuardRdp { get; set; } = true;
 
