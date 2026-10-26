@@ -1,0 +1,87 @@
+{
+  "Cerberus": {
+    "Mode": "Audit",
+    "ServerUrl": "",
+    "HostKey": "",
+    "ScanIntervalSeconds": 3,
+    "HeartbeatIntervalSeconds": 60,
+    "RdpCheckIntervalSeconds": 60,
+    "GuardRdp": true,
+    "AllowedHosts": [],
+    "Tools": [
+      {
+        "Name": "AnyDesk",
+        "Signers": [ "AnyDesk Software GmbH", "philandro Software GmbH" ],
+        "Names": [ "anydesk" ],
+        "Ports": [ 6568, 7070 ],
+        "Services": [ "AnyDesk" ]
+      },
+      {
+        "Name": "TeamViewer",
+        "Signers": [ "TeamViewer Germany GmbH", "TeamViewer GmbH" ],
+        "Names": [ "teamviewer" ],
+        "Ports": [ 5938 ],
+        "Services": [ "TeamViewer" ]
+      },
+      {
+        "Name": "RustDesk",
+        "Signers": [ "Purslane Ltd", "RustDesk" ],
+        "Names": [ "rustdesk" ],
+        "Ports": [ 21115, 21116, 21117, 21118, 21119 ],
+        "Services": [ "RustDesk" ]
+      },
+      {
+        "Name": "ToDesk",
+        "Signers": [ "Hangzhou Youmi Technology", "ToDesk" ],
+        "Names": [ "todesk" ],
+        "Services": [ "ToDesk_Service" ]
+      },
+      {
+        "Name": "Sunlogin",
+        "Signers": [ "Shanghai Best Oray Information", "Oray" ],
+        "Names": [ "sunlogin", "oray" ],
+        "Services": [ "SunloginService", "OrayRemoteService" ]
+      },
+      {
+        "Name": "Splashtop",
+        "Signers": [ "Splashtop Inc" ],
+        "Names": [ "splashtop", "SRServer", "SRManager" ],
+        "Services": [ "SplashtopRemoteService" ]
+      },
+      {
+        "Name": "Parsec",
+        "Signers": [ "Parsec Cloud" ],
+        "Names": [ "parsecd", "parsec" ]
+      },
+      {
+        "Name": "ChromeRemoteDesktop",
+        "Names": [ "remoting_host", "Chrome Remote Desktop" ],
+        "Services": [ "chromoting" ]
+      },
+      {
+        "Name": "ScreenConnect",
+        "Signers": [ "ConnectWise", "ScreenConnect Software" ],
+        "Names": [ "screenconnect", "connectwisecontrol" ]
+      },
+      {
+        "Name": "Ngrok",
+        "Names": [ "ngrok" ]
+      },
+      {
+        "Name": "Cloudflared",
+        "Signers": [ "Cloudflare" ],
+        "Names": [ "cloudflared" ]
+      },
+      {
+        "Name": "Frp",
+        "Names": [ "frpc", "frps" ]
+      },
+      {
+        "Name": "Tailscale",
+        "Signers": [ "Tailscale Inc" ],
+        "Names": [ "tailscaled", "tailscale" ],
+        "Services": [ "Tailscale" ]
+      }
+    ]
+  }
+}

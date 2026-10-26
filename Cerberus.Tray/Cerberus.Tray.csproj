@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Version>1.1.0</Version>
+    <Product>Cerberus Endpoint Guard</Product>
+    <ApplicationIcon>Assets\cerberus.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cerberus.Shared\Cerberus.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 嵌入供系統匣 NotifyIcon 載入（單檔發佈也可取用） -->
+    <EmbeddedResource Include="Assets\cerberus.ico" />
+  </ItemGroup>
+
+</Project>

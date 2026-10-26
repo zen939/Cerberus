@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cerberus 管理後台</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #181b22; --border: #272b34; --text: #e6e8ec;
+    --muted: #8b90a0; --accent: #4f8cff; --ok: #3fb950; --warn: #d29922; --bad: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif; font-size: 14px; }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .spacer { flex: 1; }
+  input, select, button { font: inherit; }
+  input[type=password] { background: var(--panel); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px; padding: 6px 10px; }
+  button { background: var(--accent); color: #fff; border: 0; border-radius: 6px;
+    padding: 6px 12px; cursor: pointer; }
+  button.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  button:hover { filter: brightness(1.1); }
+  main { padding: 20px; display: grid; gap: 20px; max-width: 1200px; margin: 0 auto; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .panel h2 { font-size: 14px; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--border);
+    color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 9px 16px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  tr:last-child td { border-bottom: 0; }
+  td.wrap { white-space: normal; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .on { background: var(--ok); } .off { background: var(--bad); }
+  .badge { padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  .b-audit { background: #1f2a3d; color: #8fb3ff; }
+  .b-enforce { background: #3d241f; color: #ff9f8f; }
+  .b-pending { background: #2d2a1a; color: var(--warn); }
+  .b-dispatched { background: #1f2a3d; color: #8fb3ff; }
+  .b-completed { background: #16301c; color: var(--ok); }
+  .b-failed { background: #3a1d1d; color: var(--bad); }
+  .act { display: flex; gap: 6px; flex-wrap: wrap; }
+  .act button { padding: 4px 8px; font-size: 12px; }
+  .muted { color: var(--muted); }
+  .empty { padding: 16px; color: var(--muted); }
+  #banner { background: var(--bad); color: #fff; padding: 8px 20px; display: none; }
+</style>
+</head>
+<body>
+<header>
+  <span class="dot on" id="statusDot"></span>
+  <h1>Cerberus 管理後台</h1>
+  <span class="muted" id="clock"></span>
+  <div class="spacer"></div>
+  <input type="password" id="token" placeholder="Admin Token（未設則留空）" style="width:220px">
+  <button class="ghost" onclick="saveToken()">套用</button>
+</header>
+<div id="banner"></div>
+
+<main>
+  <section class="panel">
+    <h2>端點主機</h2>
+    <div id="hosts"></div>
+  </section>
+
+  <section class="panel">
+    <h2>指令紀錄</h2>
+    <div id="commands"></div>
+  </section>
+
+  <section class="panel">
+    <h2>最近告警</h2>
+    <div id="alerts"></div>
+  </section>
+</main>
+
+<script>
+const ACTIONS = [
+  ["DefenderQuickScan", "快速掃描"],
+  ["DefenderFullScan", "完整掃描"],
+  ["DefenderUpdateSignature", "更新定義"],
+  ["HardenAudit", "強化稽核"],
+  ["HardenApply", "套用強化"],
+];
+let token = localStorage.getItem("cerberusToken") || "";
+document.getElementById("token").value = token;
+
+function saveToken() {
+  token = document.getElementById("token").value.trim();
+  localStorage.setItem("cerberusToken", token);
+  refresh();
+}
+function headers(extra) {
+  const h = Object.assign({ "X-Admin-Token": token }, extra || {});
+  return h;
+}
+function banner(msg) {
+  const b = document.getElementById("banner");
+  if (msg) { b.textContent = msg; b.style.display = "block"; }
+  else b.style.display = "none";
+}
+async function api(path, opts) {
+  const r = await fetch("/api/admin" + path, Object.assign({ headers: headers(opts && opts.json ? {"Content-Type":"application/json"} : {}) }, opts));
+  if (r.status === 401) { banner("未授權：請在右上角輸入正確的 Admin Token"); throw new Error("401"); }
+  banner("");
+  return r.json();
+}
+function esc(s) { return (s ?? "").toString().replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function timeAgo(iso) {
+  if (!iso) return "—";
+  const s = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (s < 60) return s + " 秒前";
+  if (s < 3600) return Math.floor(s/60) + " 分前";
+  if (s < 86400) return Math.floor(s/3600) + " 時前";
+  return Math.floor(s/86400) + " 天前";
+}
+
+async function sendCmd(host, action) {
+  try {
+    await api("/commands", { method:"POST", json:true, body: JSON.stringify({ hostName: host, action }) });
+    refreshCommands();
+  } catch (e) {}
+}
+
+async function refreshHosts() {
+  try {
+    const hosts = await api("/hosts");
+    const el = document.getElementById("hosts");
+    if (!hosts.length) { el.innerHTML = '<div class="empty">尚無主機回報</div>'; return; }
+    let h = "<table><tr><th>主機</th><th>使用者</th><th>模式</th><th>版本</th><th>最後心跳</th><th>動作</th></tr>";
+    for (const x of hosts) {
+      const buttons = ACTIONS.map(a => `<button onclick="sendCmd('${esc(x.hostName)}','${a[0]}')">${a[1]}</button>`).join("");
+      h += `<tr>
+        <td><span class="dot ${x.online?'on':'off'}"></span>${esc(x.hostName)}</td>
+        <td>${esc(x.userName)}</td>
+        <td><span class="badge ${x.mode==='Enforce'?'b-enforce':'b-audit'}">${esc(x.mode)}</span></td>
+        <td class="muted">${esc(x.agentVersion)}</td>
+        <td class="muted">${timeAgo(x.lastSeen)}</td>
+        <td><div class="act">${buttons}</div></td>
+      </tr>`;
+    }
+    document.getElementById("hosts").innerHTML = h + "</table>";
+  } catch (e) {}
+}
+
+async function refreshCommands() {
+  try {
+    const cmds = await api("/commands?take=30");
+    const el = document.getElementById("commands");
+    if (!cmds.length) { el.innerHTML = '<div class="empty">尚無指令</div>'; return; }
+    let h = "<table><tr><th>時間</th><th>主機</th><th>動作</th><th>狀態</th><th>發起</th><th>結果</th></tr>";
+    for (const c of cmds) {
+      const cls = "b-" + c.status.toLowerCase();
+      h += `<tr>
+        <td class="muted">${timeAgo(c.createdAt)}</td>
+        <td>${esc(c.hostName)}</td>
+        <td>${esc(c.action)}</td>
+        <td><span class="badge ${cls}">${esc(c.status)}</span></td>
+        <td class="muted">${esc(c.requestedBy)}</td>
+        <td class="wrap muted">${esc(c.output)}</td>
+      </tr>`;
+    }
+    el.innerHTML = h + "</table>";
+  } catch (e) {}
+}
+
+async function refreshAlerts() {
+  try {
+    const alerts = await api("/alerts?take=50");
+    const el = document.getElementById("alerts");
+    if (!alerts.length) { el.innerHTML = '<div class="empty">尚無告警</div>'; return; }
+    let h = "<table><tr><th>時間</th><th>類型</th><th>主機</th><th>使用者</th><th>內容</th></tr>";
+    for (const a of alerts) {
+      h += `<tr>
+        <td class="muted">${timeAgo(a.timestamp)}</td>
+        <td>${esc(a.type)}${a.enforced?' 🛑':''}</td>
+        <td>${esc(a.hostName)}</td>
+        <td class="muted">${esc(a.userName)}</td>
+        <td class="wrap">${esc(a.details)}</td>
+      </tr>`;
+    }
+    el.innerHTML = h + "</table>";
+  } catch (e) {}
+}
+
+function refresh() { refreshHosts(); refreshCommands(); refreshAlerts(); }
+setInterval(() => {
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+  refresh();
+}, 5000);
+document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+refresh();
+</script>
+</body>
+</html>
