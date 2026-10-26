@@ -1,0 +1,14 @@
+# 預設自動處理文字檔行尾
+* text=auto
+
+# Windows 批次檔必須 CRLF，否則 cmd.exe 解析多行區塊會靜默失敗
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# PowerShell 統一 CRLF
+*.ps1 text eol=crlf
+
+# 二進位資產不做行尾轉換
+*.ico binary
+*.png binary
+*.zip binary

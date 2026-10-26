@@ -1,0 +1,25 @@
+# === .NET build output ===
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+
+# === 發佈 / 打包產物（含上百 MB 自封裝 exe，不進版控）===
+dist/
+publish/
+*.zip
+
+# === IDE ===
+.vs/
+.idea/
+*.DS_Store
+
+# === 本機測試設定（可能含測試金鑰 / 指向）===
+# 正式設定存於 %ProgramData%\Cerberus，不在 repo
+cerberus.local.json
+appsettings.*.local.json
+
+# === 執行時資料 ===
+*.log

@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+Cerberus.Agent/
+Cerberus.Tray/
+tools/
+dist/
+*.md
