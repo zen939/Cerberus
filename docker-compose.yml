@@ -10,7 +10,7 @@ services:
       - "8080:8080"
     environment:
       # 共用 HMAC 金鑰（正式環境請改用 Cerberus__HostKeys__<主機名> 個別派送）
-      - Cerberus__DefaultKey=${CERBERUS_KEY:-change-me-please}
+      - Cerberus__DefaultKey=${CERBERUS_KEY:?需設定 CERBERUS_KEY}
       # 企業 Webhook（Teams / Slack 相容）；留空則只記錄不轉發
       - Cerberus__WebhookUrl=${CERBERUS_WEBHOOK:-}
       - Cerberus__OfflineThresholdSeconds=180
