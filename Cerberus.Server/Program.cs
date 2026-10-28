@@ -16,6 +16,7 @@ builder.Services.AddSingleton<HostRegistry>();
 builder.Services.AddSingleton<AlertStore>();
 builder.Services.AddSingleton<UsbConfigStore>();
 builder.Services.AddSingleton<EnrolledKeyStore>();
+builder.Services.AddSingleton<ManagedConfigStore>();
 builder.Services.AddSingleton<CommandQueue>();
 builder.Services.AddSingleton<AdminAuth>();
 builder.Services.AddHttpClient<WebhookForwarder>(c => c.Timeout = TimeSpan.FromSeconds(10));
@@ -194,6 +195,15 @@ app.MapGet("/api/usb-policy", async (HttpContext ctx, IOptionsMonitor<ServerOpti
     return Results.Ok(usb.Get());
 });
 
+// Agent 取得集中管理設定（HMAC）
+app.MapGet("/api/managed-config", async (HttpContext ctx, IOptionsMonitor<ServerOptions> opts, ManagedConfigStore mc) =>
+{
+    var body = await VerifyAsync(ctx, opts);
+    if (body is null)
+        return Results.Empty;
+    return Results.Ok(mc.Get());
+});
+
 // ── 管理介面 API（權杖授權；之後接 OAuth）──
 
 RouteGroupBuilder admin = app.MapGroup("/api/admin");
@@ -211,6 +221,13 @@ admin.MapPost("/usb-policy", (UsbConfig cfg, UsbConfigStore usb) =>
 {
     usb.Set(cfg);
     return Results.Ok(usb.Get());
+});
+
+admin.MapGet("/managed-config", (ManagedConfigStore mc) => Results.Ok(mc.Get()));
+admin.MapPost("/managed-config", (ManagedConfig cfg, ManagedConfigStore mc) =>
+{
+    mc.Set(cfg);
+    return Results.Ok(mc.Get());
 });
 
 admin.MapPost("/commands", (CommandEnqueueRequest req, CommandQueue commands, HttpContext ctx) =>

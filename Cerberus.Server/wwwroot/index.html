@@ -67,6 +67,25 @@
   </section>
 
   <section class="panel">
+    <h2>集中設定下發（全域，Agent 自動套用）</h2>
+    <div style="padding:14px 16px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+      <label>模式：
+        <select id="mcMode" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px">
+          <option value="">（不覆蓋，沿用本機）</option>
+          <option value="Audit">Audit（只告警）</option>
+          <option value="Enforce">Enforce（實際處置）</option>
+        </select>
+      </label>
+      <div style="flex:1;min-width:220px">
+        <div class="muted" style="font-size:12px;margin-bottom:4px">白名單主機（每行一個；留空＝不覆蓋）</div>
+        <textarea id="mcHosts" rows="2" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px;font-family:monospace;font-size:12px"></textarea>
+      </div>
+      <button onclick="saveManaged()">下發設定</button>
+      <span id="mcSaved" class="ok" style="align-self:center"></span>
+    </div>
+  </section>
+
+  <section class="panel">
     <h2>USB 管控（全域，Agent 自動套用）</h2>
     <div style="padding:14px 16px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
       <label>政策：
@@ -227,6 +246,26 @@ async function saveUsb() {
   } catch (e) {}
 }
 
+async function loadManaged() {
+  try {
+    const m = await api("/managed-config");
+    document.getElementById("mcMode").value = m.mode || "";
+    document.getElementById("mcHosts").value = (m.allowedHosts || []).join("\n");
+  } catch (e) {}
+}
+async function saveManaged() {
+  const mode = document.getElementById("mcMode").value;
+  const hostsRaw = document.getElementById("mcHosts").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const body = {
+    mode: mode || null,
+    allowedHosts: hostsRaw.length ? hostsRaw : null
+  };
+  try {
+    await api("/managed-config", { method:"POST", json:true, body: JSON.stringify(body) });
+    const el = document.getElementById("mcSaved"); el.textContent = "已下發"; setTimeout(() => el.textContent = "", 2000);
+  } catch (e) {}
+}
+
 function refresh() { refreshHosts(); refreshCommands(); refreshAlerts(); }
 setInterval(() => {
   document.getElementById("clock").textContent = new Date().toLocaleTimeString();
@@ -234,6 +273,7 @@ setInterval(() => {
 }, 5000);
 document.getElementById("clock").textContent = new Date().toLocaleTimeString();
 loadUsb();
+loadManaged();
 refresh();
 </script>
 </body>
