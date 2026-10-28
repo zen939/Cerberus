@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cerberus 設定</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #181b22; --border: #272b34; --text: #e6e8ec;
+    --muted: #8b90a0; --accent: #4f8cff; --ok: #3fb950; --warn: #d29922; --bad: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif; font-size: 14px; }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .spacer { flex: 1; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  input, select, button, textarea { font: inherit; }
+  input[type=password], input[type=text] { background: var(--panel); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 6px 10px; }
+  button { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  button.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  button:hover { filter: brightness(1.1); }
+  main { padding: 20px; display: grid; gap: 20px; max-width: 1000px; margin: 0 auto; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .panel h2 { font-size: 14px; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .muted { color: var(--muted); }
+  .ok { color: var(--ok); }
+  .bad { color: var(--bad); }
+  #banner { background: var(--bad); color: #fff; padding: 8px 20px; display: none; }
+  select, textarea { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
+</style>
+</head>
+<body>
+<header>
+  <span>🔥</span><h1>Cerberus 設定</h1>
+  <a href="/">← 監控後台</a>
+  <a href="/help.html">功能說明</a>
+  <div class="spacer"></div>
+  <input type="password" id="token" placeholder="Admin Token（未設則留空）" style="width:220px">
+  <button class="ghost" onclick="saveToken()">套用</button>
+</header>
+<div id="banner"></div>
+
+<main>
+  <section class="panel">
+    <h2>Admin Token（管理存取權杖）</h2>
+    <div style="padding:14px 16px">
+      <div class="muted" style="font-size:12px;margin-bottom:8px">
+        保護所有管理功能。<b id="tokStatus"></b>
+        未設定時管理 API 一律拒絕；首次可直接設定，之後變更需帶現行權杖（右上角欄位）。
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="newTok" placeholder="至少 12 字元，或按生成" style="width:320px;font-family:monospace;font-size:12px">
+        <button class="ghost" onclick="genTok()">生成</button>
+        <button onclick="applyTok()">套用</button>
+        <span id="tokMsg" class="ok" style="align-self:center"></span>
+      </div>
+      <div class="muted" style="font-size:12px;margin-top:6px">套用後此權杖會自動填入右上角並記住；請另行妥善保存。</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Webhook 通知</h2>
+    <div style="padding:14px 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <div style="flex:1;min-width:280px">
+        <div class="muted" style="font-size:12px;margin-bottom:4px">推送網址（Teams / Slack incoming webhook，或任何收 POST 的端點；留空＝不推送）</div>
+        <input type="text" id="whUrl" placeholder="https://..." style="width:100%;font-family:monospace;font-size:12px">
+      </div>
+      <button onclick="saveWebhook()">儲存</button>
+      <button class="ghost" onclick="testWebhook()">發送測試</button>
+      <span id="whMsg" class="ok" style="align-self:center"></span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>集中設定下發（全域，Agent 自動套用）</h2>
+    <div style="padding:14px 16px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+      <label>模式：
+        <select id="mcMode">
+          <option value="">（不覆蓋，沿用本機）</option>
+          <option value="Audit">Audit（只告警）</option>
+          <option value="Enforce">Enforce（實際處置）</option>
+        </select>
+      </label>
+      <div style="flex:1;min-width:220px">
+        <div class="muted" style="font-size:12px;margin-bottom:4px">白名單主機（每行一個；留空＝不覆蓋）</div>
+        <textarea id="mcHosts" rows="2" style="width:100%;font-family:monospace;font-size:12px"></textarea>
+      </div>
+      <button onclick="saveManaged()">下發設定</button>
+      <span id="mcSaved" class="ok" style="align-self:center"></span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>USB 管控（全域，Agent 自動套用）</h2>
+    <div style="padding:14px 16px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+      <label>政策：
+        <select id="usbPolicy">
+          <option value="Audit">Audit（只告警）</option>
+          <option value="ReadOnly">ReadOnly（強制唯讀）</option>
+          <option value="Block">Block（非白名單卸載）</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="usbScan"> 接入時自動掃描</label>
+      <div style="flex:1;min-width:220px">
+        <div class="muted" style="font-size:12px;margin-bottom:4px">白名單序號（每行一個）</div>
+        <textarea id="usbAllow" rows="3" style="width:100%;font-family:monospace;font-size:12px"></textarea>
+      </div>
+      <button onclick="saveUsb()">儲存政策</button>
+      <span id="usbSaved" class="ok" style="align-self:center"></span>
+    </div>
+  </section>
+</main>
+
+<script>
+let token = localStorage.getItem("cerberusToken") || "";
+document.getElementById("token").value = token;
+function saveToken() {
+  token = document.getElementById("token").value.trim();
+  localStorage.setItem("cerberusToken", token);
+  refresh();
+}
+function headers(extra) { return Object.assign({ "X-Admin-Token": token }, extra || {}); }
+function banner(msg) {
+  const b = document.getElementById("banner");
+  if (msg) { b.textContent = msg; b.style.display = "block"; } else b.style.display = "none";
+}
+async function api(path, opts) {
+  const r = await fetch("/api/admin" + path, Object.assign({ headers: headers(opts && opts.json ? {"Content-Type":"application/json"} : {}) }, opts));
+  if (r.status === 401) { banner("未授權：請在右上角輸入正確的 Admin Token"); throw new Error("401"); }
+  banner("");
+  return r.json();
+}
+function msg(id, t, ok) {
+  const el = document.getElementById(id);
+  el.textContent = t; el.className = ok ? "ok" : "bad";
+  setTimeout(() => el.textContent = "", 2500);
+}
+
+async function loadTokStatus() {
+  try {
+    const r = await fetch("/api/admin-token-status");
+    const s = (await r.json()).isSet;
+    document.getElementById("tokStatus").textContent = s ? "目前狀態：已設定。" : "目前狀態：尚未設定（管理功能停用中）。";
+    document.getElementById("tokStatus").className = s ? "ok" : "bad";
+  } catch (e) {}
+}
+function genTok() {
+  const b = new Uint8Array(24); crypto.getRandomValues(b);
+  document.getElementById("newTok").value = btoa(String.fromCharCode(...b)).replace(/[+/=]/g, "").slice(0, 28);
+}
+async function applyTok() {
+  const t = document.getElementById("newTok").value.trim();
+  if (t.length < 12) { msg("tokMsg", "至少 12 字元", false); return; }
+  try {
+    const r = await fetch("/api/admin-token", { method:"POST", headers: headers({"Content-Type":"application/json"}), body: JSON.stringify({ token: t }) });
+    if (r.ok) {
+      token = t; localStorage.setItem("cerberusToken", t);
+      document.getElementById("token").value = t;
+      document.getElementById("newTok").value = "";
+      msg("tokMsg", "已套用並記住", true);
+      loadTokStatus(); refresh();
+    } else if (r.status === 401) { msg("tokMsg", "需先填右上角現行權杖", false); }
+    else { msg("tokMsg", "失敗（" + r.status + "）", false); }
+  } catch (e) { msg("tokMsg", "套用失敗", false); }
+}
+
+async function loadWebhook() {
+  try { document.getElementById("whUrl").value = (await api("/webhook")).url || ""; } catch (e) {}
+}
+async function saveWebhook() {
+  try { await api("/webhook", { method:"POST", json:true, body: JSON.stringify({ url: document.getElementById("whUrl").value.trim() }) }); msg("whMsg","已儲存",true); } catch (e) {}
+}
+async function testWebhook() {
+  try { const r = await fetch("/api/admin/webhook/test", { method:"POST", headers: headers() }); msg("whMsg", r.ok ? "已發送測試" : "失敗（檢查網址）", r.ok); } catch (e) { msg("whMsg","發送失敗",false); }
+}
+
+async function loadManaged() {
+  try { const m = await api("/managed-config"); document.getElementById("mcMode").value = m.mode || ""; document.getElementById("mcHosts").value = (m.allowedHosts || []).join("\n"); } catch (e) {}
+}
+async function saveManaged() {
+  const mode = document.getElementById("mcMode").value;
+  const hosts = document.getElementById("mcHosts").value.split("\n").map(s => s.trim()).filter(Boolean);
+  try { await api("/managed-config", { method:"POST", json:true, body: JSON.stringify({ mode: mode || null, allowedHosts: hosts.length ? hosts : null }) }); msg("mcSaved","已下發",true); } catch (e) {}
+}
+
+async function loadUsb() {
+  try { const c = await api("/usb-policy"); document.getElementById("usbPolicy").value = c.policy; document.getElementById("usbScan").checked = !!c.scanOnInsert; document.getElementById("usbAllow").value = (c.allowlist || []).join("\n"); } catch (e) {}
+}
+async function saveUsb() {
+  const body = { policy: document.getElementById("usbPolicy").value, scanOnInsert: document.getElementById("usbScan").checked, allowlist: document.getElementById("usbAllow").value.split("\n").map(s => s.trim()).filter(Boolean) };
+  try { await api("/usb-policy", { method:"POST", json:true, body: JSON.stringify(body) }); msg("usbSaved","已儲存",true); } catch (e) {}
+}
+
+function refresh() { loadWebhook(); loadManaged(); loadUsb(); }
+loadTokStatus();
+refresh();
+</script>
+</body>
+</html>

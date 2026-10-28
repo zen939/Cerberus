@@ -9,18 +9,31 @@ public sealed class WebhookForwarder
 {
     private readonly HttpClient _http;
     private readonly IOptionsMonitor<ServerOptions> _options;
+    private readonly WebhookSettingsStore _store;
     private readonly ILogger<WebhookForwarder> _logger;
 
-    public WebhookForwarder(HttpClient http, IOptionsMonitor<ServerOptions> options, ILogger<WebhookForwarder> logger)
+    public WebhookForwarder(HttpClient http, IOptionsMonitor<ServerOptions> options,
+        WebhookSettingsStore store, ILogger<WebhookForwarder> logger)
     {
         _http = http;
         _options = options;
+        _store = store;
         _logger = logger;
+    }
+
+    /// <summary>後台設定的網址優先，否則用 ServerOptions.WebhookUrl 預設。</summary>
+    public string EffectiveUrl
+    {
+        get
+        {
+            var stored = _store.Get();
+            return !string.IsNullOrWhiteSpace(stored) ? stored : _options.CurrentValue.WebhookUrl;
+        }
     }
 
     public async Task SendAsync(string text, CancellationToken ct = default)
     {
-        var url = _options.CurrentValue.WebhookUrl;
+        var url = EffectiveUrl;
         if (string.IsNullOrWhiteSpace(url))
             return;
 

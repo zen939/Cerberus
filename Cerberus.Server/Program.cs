@@ -17,6 +17,26 @@ builder.Services.AddSingleton<AlertStore>();
 builder.Services.AddSingleton<UsbConfigStore>();
 builder.Services.AddSingleton<EnrolledKeyStore>();
 builder.Services.AddSingleton<ManagedConfigStore>();
+builder.Services.AddSingleton<WebhookSettingsStore>();
+builder.Services.AddSingleton<AdminTokenStore>();
+
+// 限流：抵擋暴力猜測與 DoS（每 IP 每分鐘上限）
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 300,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
+// 限制請求內文大小，避免記憶體耗盡型 DoS
+builder.WebHost.ConfigureKestrel(k => k.Limits.MaxRequestBodySize = 256 * 1024);
 builder.Services.AddSingleton<CommandQueue>();
 builder.Services.AddSingleton<AdminAuth>();
 builder.Services.AddHttpClient<WebhookForwarder>(c => c.Timeout = TimeSpan.FromSeconds(10));
@@ -34,7 +54,12 @@ var app = builder.Build();
         startupLog.LogWarning("尚未設定任何 HostKeys，且 DefaultKey 為空：所有 Agent 請求都會被拒絕。");
     else
         startupLog.LogInformation("金鑰策略：每台獨立 HostKeys（{Count} 台已註冊）。", opts.HostKeys.Count);
+
+    if (!app.Services.GetRequiredService<AdminAuth>().IsConfigured)
+        startupLog.LogWarning("尚未設定 Admin Token：/api/admin/* 一律拒絕，請於設定頁用「生成」建立權杖以啟用管理功能。");
 }
+
+app.UseRateLimiter();
 
 // 管理介面靜態頁（wwwroot/index.html）
 app.UseDefaultFiles();
@@ -204,6 +229,22 @@ app.MapGet("/api/managed-config", async (HttpContext ctx, IOptionsMonitor<Server
     return Results.Ok(mc.Get());
 });
 
+// Admin Token bootstrap：狀態查詢（公開，不回傳權杖本身）
+app.MapGet("/api/admin-token-status", (AdminAuth auth) => Results.Ok(new { isSet = auth.IsConfigured }));
+
+// 設定 / 變更 Admin Token：未設定時開放（首次設定）；已設定時需帶現行權杖
+app.MapPost("/api/admin-token", (SetTokenRequest req, AdminAuth auth, AdminTokenStore store, HttpContext ctx, ILoggerFactory lf) =>
+{
+    if (auth.IsConfigured && !auth.IsAuthorized(ctx))
+        return Results.Unauthorized();
+    if (string.IsNullOrWhiteSpace(req.Token) || req.Token.Trim().Length < 12)
+        return Results.BadRequest("權杖至少 12 個字元");
+
+    store.Set(req.Token.Trim());
+    lf.CreateLogger("Admin").LogWarning("Admin Token 已更新");
+    return Results.Ok(new { ok = true });
+});
+
 // ── 管理介面 API（權杖授權；之後接 OAuth）──
 
 RouteGroupBuilder admin = app.MapGroup("/api/admin");
@@ -221,6 +262,27 @@ admin.MapPost("/usb-policy", (UsbConfig cfg, UsbConfigStore usb) =>
 {
     usb.Set(cfg);
     return Results.Ok(usb.Get());
+});
+
+admin.MapGet("/webhook", (WebhookSettingsStore store, IOptionsMonitor<ServerOptions> opts) =>
+    Results.Ok(new { url = store.Get() ?? string.Empty, envDefault = opts.CurrentValue.WebhookUrl }));
+admin.MapPost("/webhook", (WebhookUrlRequest req, WebhookSettingsStore store) =>
+{
+    var url = req.Url?.Trim() ?? string.Empty;
+    // 允許清空；若有值則須為合法 http/https，降低 SSRF/誤設風險
+    if (!string.IsNullOrEmpty(url) &&
+        !(Uri.TryCreate(url, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttps || u.Scheme == Uri.UriSchemeHttp)))
+        return Results.BadRequest("Webhook 網址須為 http/https 絕對網址");
+
+    store.Set(url);
+    return Results.Ok(new { url = store.Get() ?? string.Empty });
+});
+admin.MapPost("/webhook/test", async (WebhookForwarder webhook) =>
+{
+    if (string.IsNullOrWhiteSpace(webhook.EffectiveUrl))
+        return Results.BadRequest("尚未設定 Webhook 網址");
+    await webhook.SendAsync("🔔 Cerberus 測試通知：Webhook 設定正常。");
+    return Results.Ok(new { sent = true, url = webhook.EffectiveUrl });
 });
 
 admin.MapGet("/managed-config", (ManagedConfigStore mc) => Results.Ok(mc.Get()));
@@ -246,3 +308,5 @@ app.MapGet("/health", () => Results.Ok("ok"));
 app.Run();
 
 internal sealed record CommandEnqueueRequest(string HostName, CommandAction Action);
+internal sealed record WebhookUrlRequest(string? Url);
+internal sealed record SetTokenRequest(string? Token);
