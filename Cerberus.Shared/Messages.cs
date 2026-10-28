@@ -12,6 +12,8 @@ public static class AlertTypes
     public const string LogonFailureBurst = "LogonFailureBurst";
     public const string RemoteLogon = "RemoteLogon";
     public const string AccountLockout = "AccountLockout";
+    public const string UsbInserted = "UsbInserted";
+    public const string UsbBlocked = "UsbBlocked";
     public const string AgentStarted = "AgentStarted";
     public const string AgentStopped = "AgentStopped";
     public const string AgentUnresponsive = "AgentUnresponsive";

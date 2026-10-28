@@ -14,6 +14,7 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 builder.Services.Configure<ServerOptions>(builder.Configuration.GetSection(ServerOptions.SectionName));
 builder.Services.AddSingleton<HostRegistry>();
 builder.Services.AddSingleton<AlertStore>();
+builder.Services.AddSingleton<UsbConfigStore>();
 builder.Services.AddSingleton<CommandQueue>();
 builder.Services.AddSingleton<AdminAuth>();
 builder.Services.AddHttpClient<WebhookForwarder>(c => c.Timeout = TimeSpan.FromSeconds(10));
@@ -159,6 +160,15 @@ app.MapPost("/api/command-result", async (HttpContext ctx, IOptionsMonitor<Serve
     return Results.Ok();
 });
 
+// Agent 取得目前 USB 管控政策（HMAC）
+app.MapGet("/api/usb-policy", async (HttpContext ctx, IOptionsMonitor<ServerOptions> opts, UsbConfigStore usb) =>
+{
+    var body = await VerifyAsync(ctx, opts);
+    if (body is null)
+        return Results.Empty;
+    return Results.Ok(usb.Get());
+});
+
 // ── 管理介面 API（權杖授權；之後接 OAuth）──
 
 RouteGroupBuilder admin = app.MapGroup("/api/admin");
@@ -170,6 +180,13 @@ admin.AddEndpointFilter(async (ctx, next) =>
 admin.MapGet("/hosts", (HostRegistry registry) => Results.Ok(registry.Snapshot()));
 admin.MapGet("/alerts", (AlertStore store, int? take) => Results.Ok(store.Recent(take ?? 100)));
 admin.MapGet("/commands", (CommandQueue commands, int? take) => Results.Ok(commands.Recent(take ?? 100)));
+
+admin.MapGet("/usb-policy", (UsbConfigStore usb) => Results.Ok(usb.Get()));
+admin.MapPost("/usb-policy", (UsbConfig cfg, UsbConfigStore usb) =>
+{
+    usb.Set(cfg);
+    return Results.Ok(usb.Get());
+});
 
 admin.MapPost("/commands", (CommandEnqueueRequest req, CommandQueue commands, HttpContext ctx) =>
 {
