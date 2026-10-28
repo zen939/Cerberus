@@ -53,6 +53,9 @@ public sealed class CerberusOptions
 
     public int UsbPolicyPollSeconds { get; set; } = 30;
 
+    /// <summary>允許使用者從 Tray 手動觸發強化/掃描（透過服務以 SYSTEM 執行）。</summary>
+    public bool AllowTrayActions { get; set; } = true;
+
     /// <summary>巡檢本機遠端桌面（fDenyTSConnections）。</summary>
     public bool GuardRdp { get; set; } = true;
 

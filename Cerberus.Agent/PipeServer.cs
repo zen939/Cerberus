@@ -23,13 +23,23 @@ public sealed class PipeServer : BackgroundService
         public SemaphoreSlim WriteLock { get; } = new(1, 1);
     }
 
+    // Tray 可手動觸發的白名單動作（與伺服器指令通道一致的安全邊界）
+    private static readonly Dictionary<string, CommandAction> AllowedActions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["HardenAudit"] = CommandAction.HardenAudit,
+        ["HardenApply"] = CommandAction.HardenApply,
+        ["DefenderQuickScan"] = CommandAction.DefenderQuickScan
+    };
+
     private readonly ConcurrentDictionary<Guid, Client> _clients = new();
     private readonly IOptionsMonitor<CerberusOptions> _options;
+    private readonly CommandExecutor _executor;
     private readonly ILogger<PipeServer> _logger;
 
-    public PipeServer(IOptionsMonitor<CerberusOptions> options, ILogger<PipeServer> logger)
+    public PipeServer(IOptionsMonitor<CerberusOptions> options, CommandExecutor executor, ILogger<PipeServer> logger)
     {
         _options = options;
+        _executor = executor;
         _logger = logger;
     }
 
@@ -112,6 +122,9 @@ public sealed class PipeServer : BackgroundService
                         case PipeMessage.Ping:
                             await WriteAsync(client, Pong(), ct);
                             break;
+                        case PipeMessage.Action:
+                            await HandleActionAsync(client, message.ActionName, ct);
+                            break;
                     }
                 }
             }
@@ -125,6 +138,36 @@ public sealed class PipeServer : BackgroundService
             }
         }
     }
+
+    // Tray 請求執行動作：驗證開關與白名單，以 SYSTEM 執行後回報結果
+    private async Task HandleActionAsync(Client client, string? actionName, CancellationToken ct)
+    {
+        if (!_options.CurrentValue.AllowTrayActions)
+        {
+            await WriteAsync(client, AlertLine("已停用", "系統管理員已停用 Tray 手動操作。"), ct);
+            return;
+        }
+
+        if (actionName is null || !AllowedActions.TryGetValue(actionName, out var action))
+        {
+            await WriteAsync(client, AlertLine("不支援", $"不允許的動作：{actionName}"), ct);
+            return;
+        }
+
+        _logger.LogWarning("Tray（Session {Session}）手動觸發動作：{Action}", client.SessionId, action);
+        await WriteAsync(client, AlertLine("已開始", $"{action} 執行中…"), ct);
+
+        // 不阻塞讀取迴圈
+        _ = Task.Run(async () =>
+        {
+            var (ok, output) = await _executor.ExecuteAsync(action, CancellationToken.None);
+            var head = output.Split('\n').FirstOrDefault() ?? string.Empty;
+            await WriteAsync(client, AlertLine(ok ? "完成" : "失敗", $"{action}：{head}"), CancellationToken.None);
+        }, CancellationToken.None);
+    }
+
+    private static string AlertLine(string title, string text) =>
+        CerberusJson.SerializeLine(new PipeMessage { Kind = PipeMessage.Alert, Title = title, Text = text });
 
     private string Pong() => CerberusJson.SerializeLine(new PipeMessage
     {
