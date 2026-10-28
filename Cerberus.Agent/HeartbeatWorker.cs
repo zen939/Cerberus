@@ -35,7 +35,8 @@ public sealed class HeartbeatWorker : BackgroundService
                 HostName = Environment.MachineName,
                 UserName = SessionUser.ForConsole(),
                 AgentVersion = AgentVersion,
-                Mode = options.Mode
+                Mode = options.Mode,
+                OsVersion = System.Runtime.InteropServices.RuntimeInformation.OSDescription
             };
 
             if (!await _server.PostAsync("api/heartbeat", JsonSerializer.Serialize(heartbeat, CerberusJson.Options), stoppingToken))
