@@ -3,34 +3,47 @@ using Microsoft.Extensions.Options;
 namespace Cerberus.Server;
 
 /// <summary>
-/// 管理介面授權（可插拔樁）。目前用簡易共用權杖（X-Admin-Token 標頭或 ?token= 查詢字串）。
+/// 管理介面授權。有效權杖 = 後台設定的 AdminToken（DB）優先，否則 ServerOptions.AdminToken（env）。
+/// 未設定任何權杖時，/api/admin/* 一律拒絕（安全預設）；首次設定走 bootstrap 端點。
 ///
-/// TODO 接公司 OAuth/OIDC：
-///   1. builder.Services.AddAuthentication(OpenIdConnectDefaults...).AddOpenIdConnect(...)
-///   2. 將 IsAuthorized 改為檢查 ctx.User.Identity.IsAuthenticated 與所需角色/群組
-///   3. 管理 API 改用 [Authorize] 或 RequireAuthorization()，前端走標準 OIDC 登入導向
-/// 現階段刻意保持單純，讓之後替換時不動到業務邏輯。
+/// TODO 接公司 OAuth/OIDC：改以 ctx.User 驗證身分/角色，詳見原設計註解。
 /// </summary>
 public sealed class AdminAuth
 {
     private readonly IOptionsMonitor<ServerOptions> _options;
+    private readonly AdminTokenStore _store;
 
-    public AdminAuth(IOptionsMonitor<ServerOptions> options) => _options = options;
+    public AdminAuth(IOptionsMonitor<ServerOptions> options, AdminTokenStore store)
+    {
+        _options = options;
+        _store = store;
+    }
+
+    public string EffectiveToken
+    {
+        get
+        {
+            var stored = _store.Get();
+            return !string.IsNullOrEmpty(stored) ? stored : _options.CurrentValue.AdminToken;
+        }
+    }
+
+    public bool IsConfigured => !string.IsNullOrEmpty(EffectiveToken);
 
     public bool IsAuthorized(HttpContext ctx)
     {
-        var expected = _options.CurrentValue.AdminToken;
+        var expected = EffectiveToken;
         if (string.IsNullOrEmpty(expected))
-            return true; // 未設權杖＝開發模式不設防
+            return false; // 未設權杖 → 拒絕（安全預設）
 
         var given = ctx.Request.Headers["X-Admin-Token"].ToString();
         if (string.IsNullOrEmpty(given))
             given = ctx.Request.Query["token"].ToString();
 
-        return CryptographicEquals(expected, given);
+        return FixedEquals(expected, given);
     }
 
-    private static bool CryptographicEquals(string a, string b)
+    private static bool FixedEquals(string a, string b)
     {
         var ba = System.Text.Encoding.UTF8.GetBytes(a);
         var bb = System.Text.Encoding.UTF8.GetBytes(b);

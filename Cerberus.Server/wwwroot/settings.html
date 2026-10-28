@@ -45,6 +45,23 @@
 
 <main>
   <section class="panel">
+    <h2>Admin Token（管理存取權杖）</h2>
+    <div style="padding:14px 16px">
+      <div class="muted" style="font-size:12px;margin-bottom:8px">
+        保護所有管理功能。<b id="tokStatus"></b>
+        未設定時管理 API 一律拒絕；首次可直接設定，之後變更需帶現行權杖（右上角欄位）。
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="newTok" placeholder="至少 12 字元，或按生成" style="width:320px;font-family:monospace;font-size:12px">
+        <button class="ghost" onclick="genTok()">生成</button>
+        <button onclick="applyTok()">套用</button>
+        <span id="tokMsg" class="ok" style="align-self:center"></span>
+      </div>
+      <div class="muted" style="font-size:12px;margin-top:6px">套用後此權杖會自動填入右上角並記住；請另行妥善保存。</div>
+    </div>
+  </section>
+
+  <section class="panel">
     <h2>Webhook 通知</h2>
     <div style="padding:14px 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
       <div style="flex:1;min-width:280px">
@@ -122,6 +139,34 @@ function msg(id, t, ok) {
   setTimeout(() => el.textContent = "", 2500);
 }
 
+async function loadTokStatus() {
+  try {
+    const r = await fetch("/api/admin-token-status");
+    const s = (await r.json()).isSet;
+    document.getElementById("tokStatus").textContent = s ? "目前狀態：已設定。" : "目前狀態：尚未設定（管理功能停用中）。";
+    document.getElementById("tokStatus").className = s ? "ok" : "bad";
+  } catch (e) {}
+}
+function genTok() {
+  const b = new Uint8Array(24); crypto.getRandomValues(b);
+  document.getElementById("newTok").value = btoa(String.fromCharCode(...b)).replace(/[+/=]/g, "").slice(0, 28);
+}
+async function applyTok() {
+  const t = document.getElementById("newTok").value.trim();
+  if (t.length < 12) { msg("tokMsg", "至少 12 字元", false); return; }
+  try {
+    const r = await fetch("/api/admin-token", { method:"POST", headers: headers({"Content-Type":"application/json"}), body: JSON.stringify({ token: t }) });
+    if (r.ok) {
+      token = t; localStorage.setItem("cerberusToken", t);
+      document.getElementById("token").value = t;
+      document.getElementById("newTok").value = "";
+      msg("tokMsg", "已套用並記住", true);
+      loadTokStatus(); refresh();
+    } else if (r.status === 401) { msg("tokMsg", "需先填右上角現行權杖", false); }
+    else { msg("tokMsg", "失敗（" + r.status + "）", false); }
+  } catch (e) { msg("tokMsg", "套用失敗", false); }
+}
+
 async function loadWebhook() {
   try { document.getElementById("whUrl").value = (await api("/webhook")).url || ""; } catch (e) {}
 }
@@ -150,6 +195,7 @@ async function saveUsb() {
 }
 
 function refresh() { loadWebhook(); loadManaged(); loadUsb(); }
+loadTokStatus();
 refresh();
 </script>
 </body>
