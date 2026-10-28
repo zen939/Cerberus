@@ -35,6 +35,9 @@ var app = builder.Build();
         startupLog.LogWarning("尚未設定任何 HostKeys，且 DefaultKey 為空：所有 Agent 請求都會被拒絕。");
     else
         startupLog.LogInformation("金鑰策略：每台獨立 HostKeys（{Count} 台已註冊）。", opts.HostKeys.Count);
+
+    if (string.IsNullOrEmpty(opts.AdminToken))
+        startupLog.LogWarning("未設定 AdminToken：管理 API（/api/admin/*）不設防，任何能連到本服務者皆可下發指令/改設定。正式環境務必設定 AdminToken 或改接 OAuth，並限制網路存取。");
 }
 
 // 管理介面靜態頁（wwwroot/index.html）
