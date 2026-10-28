@@ -9,6 +9,9 @@ public static class AlertTypes
     public const string PortOnly = "PortOnly";
     public const string RdpEnabled = "RdpEnabled";
     public const string MalwareDetected = "MalwareDetected";
+    public const string LogonFailureBurst = "LogonFailureBurst";
+    public const string RemoteLogon = "RemoteLogon";
+    public const string AccountLockout = "AccountLockout";
     public const string AgentStarted = "AgentStarted";
     public const string AgentStopped = "AgentStopped";
     public const string AgentUnresponsive = "AgentUnresponsive";

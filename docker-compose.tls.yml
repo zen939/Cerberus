@@ -1,0 +1,15 @@
+# TLS override：在基礎 compose 之上啟用 HTTPS（8443）。
+# 用法：
+#   1. 先產生憑證：  pwsh tools\New-ServerCert.ps1
+#   2. 設定密碼環境變數： $env:CERBERUS_CERT_PASSWORD = "<上一步印出的密碼>"
+#   3. 啟動：  docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+services:
+  cerberus-server:
+    ports:
+      - "8443:8443"
+    environment:
+      - ASPNETCORE_URLS=http://+:8080;https://+:8443
+      - Kestrel__Certificates__Default__Path=/certs/cerberus.pfx
+      - Kestrel__Certificates__Default__Password=${CERBERUS_CERT_PASSWORD:?需設定 CERBERUS_CERT_PASSWORD}
+    volumes:
+      - ./certs:/certs:ro

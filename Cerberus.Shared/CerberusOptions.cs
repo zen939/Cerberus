@@ -20,6 +20,12 @@ public sealed class CerberusOptions
     /// <summary>本機 HMAC 金鑰，需與 Server 端 HostKeys / DefaultKey 一致。</summary>
     public string HostKey { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Server TLS 憑證指紋（SHA-1，十六進位）。設定後 Agent 只信任此指紋的憑證，
+    /// 即使自簽也安全、且可抵擋中間人；留空則走作業系統預設憑證驗證。
+    /// </summary>
+    public string ServerCertThumbprint { get; set; } = string.Empty;
+
     public int ScanIntervalSeconds { get; set; } = 3;
 
     public int HeartbeatIntervalSeconds { get; set; } = 60;
@@ -33,6 +39,14 @@ public sealed class CerberusOptions
     public bool ReportDefenderThreats { get; set; } = true;
 
     public int DefenderThreatPollSeconds { get; set; } = 60;
+
+    /// <summary>監看 Windows 安全性事件，偵測異常登入（暴力破解、遠端桌面登入、帳號鎖定）。</summary>
+    public bool WatchLogons { get; set; } = true;
+
+    /// <summary>同一帳號在時間窗內登入失敗達此次數即視為暴力破解。</summary>
+    public int FailedLogonThreshold { get; set; } = 5;
+
+    public int FailedLogonWindowMinutes { get; set; } = 5;
 
     /// <summary>巡檢本機遠端桌面（fDenyTSConnections）。</summary>
     public bool GuardRdp { get; set; } = true;

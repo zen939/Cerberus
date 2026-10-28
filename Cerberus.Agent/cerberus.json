@@ -11,77 +11,166 @@
     "Tools": [
       {
         "Name": "AnyDesk",
-        "Signers": [ "AnyDesk Software GmbH", "philandro Software GmbH" ],
-        "Names": [ "anydesk" ],
-        "Ports": [ 6568, 7070 ],
-        "Services": [ "AnyDesk" ]
+        "Signers": [
+          "AnyDesk Software GmbH",
+          "philandro Software GmbH"
+        ],
+        "Names": [
+          "anydesk"
+        ],
+        "Ports": [
+          6568,
+          7070
+        ],
+        "Services": [
+          "AnyDesk"
+        ]
       },
       {
         "Name": "TeamViewer",
-        "Signers": [ "TeamViewer Germany GmbH", "TeamViewer GmbH" ],
-        "Names": [ "teamviewer" ],
-        "Ports": [ 5938 ],
-        "Services": [ "TeamViewer" ]
+        "Signers": [
+          "TeamViewer Germany GmbH",
+          "TeamViewer GmbH"
+        ],
+        "Names": [
+          "teamviewer"
+        ],
+        "Ports": [
+          5938
+        ],
+        "Services": [
+          "TeamViewer"
+        ]
       },
       {
         "Name": "RustDesk",
-        "Signers": [ "Purslane Ltd", "RustDesk" ],
-        "Names": [ "rustdesk" ],
-        "Ports": [ 21115, 21116, 21117, 21118, 21119 ],
-        "Services": [ "RustDesk" ]
+        "Signers": [
+          "Purslane Ltd",
+          "RustDesk"
+        ],
+        "Names": [
+          "rustdesk"
+        ],
+        "Ports": [
+          21115,
+          21116,
+          21117,
+          21118,
+          21119
+        ],
+        "Services": [
+          "RustDesk"
+        ]
       },
       {
         "Name": "ToDesk",
-        "Signers": [ "Hangzhou Youmi Technology", "ToDesk" ],
-        "Names": [ "todesk" ],
-        "Services": [ "ToDesk_Service" ]
+        "Signers": [
+          "Hangzhou Youmi Technology",
+          "ToDesk"
+        ],
+        "Names": [
+          "todesk"
+        ],
+        "Services": [
+          "ToDesk_Service"
+        ]
       },
       {
         "Name": "Sunlogin",
-        "Signers": [ "Shanghai Best Oray Information", "Oray" ],
-        "Names": [ "sunlogin", "oray" ],
-        "Services": [ "SunloginService", "OrayRemoteService" ]
+        "Signers": [
+          "Shanghai Best Oray Information",
+          "Oray"
+        ],
+        "Names": [
+          "sunlogin",
+          "oray"
+        ],
+        "Services": [
+          "SunloginService",
+          "OrayRemoteService"
+        ]
       },
       {
         "Name": "Splashtop",
-        "Signers": [ "Splashtop Inc" ],
-        "Names": [ "splashtop", "SRServer", "SRManager" ],
-        "Services": [ "SplashtopRemoteService" ]
+        "Signers": [
+          "Splashtop Inc"
+        ],
+        "Names": [
+          "splashtop",
+          "SRServer",
+          "SRManager"
+        ],
+        "Services": [
+          "SplashtopRemoteService"
+        ]
       },
       {
         "Name": "Parsec",
-        "Signers": [ "Parsec Cloud" ],
-        "Names": [ "parsecd", "parsec" ]
+        "Signers": [
+          "Parsec Cloud"
+        ],
+        "Names": [
+          "parsecd",
+          "parsec"
+        ]
       },
       {
         "Name": "ChromeRemoteDesktop",
-        "Names": [ "remoting_host", "Chrome Remote Desktop" ],
-        "Services": [ "chromoting" ]
+        "Names": [
+          "remoting_host",
+          "Chrome Remote Desktop"
+        ],
+        "Services": [
+          "chromoting"
+        ]
       },
       {
         "Name": "ScreenConnect",
-        "Signers": [ "ConnectWise", "ScreenConnect Software" ],
-        "Names": [ "screenconnect", "connectwisecontrol" ]
+        "Signers": [
+          "ConnectWise",
+          "ScreenConnect Software"
+        ],
+        "Names": [
+          "screenconnect",
+          "connectwisecontrol"
+        ]
       },
       {
         "Name": "Ngrok",
-        "Names": [ "ngrok" ]
+        "Names": [
+          "ngrok"
+        ]
       },
       {
         "Name": "Cloudflared",
-        "Signers": [ "Cloudflare" ],
-        "Names": [ "cloudflared" ]
+        "Signers": [
+          "Cloudflare"
+        ],
+        "Names": [
+          "cloudflared"
+        ]
       },
       {
         "Name": "Frp",
-        "Names": [ "frpc", "frps" ]
+        "Names": [
+          "frpc",
+          "frps"
+        ]
       },
       {
         "Name": "Tailscale",
-        "Signers": [ "Tailscale Inc" ],
-        "Names": [ "tailscaled", "tailscale" ],
-        "Services": [ "Tailscale" ]
+        "Signers": [
+          "Tailscale Inc"
+        ],
+        "Names": [
+          "tailscaled",
+          "tailscale"
+        ],
+        "Services": [
+          "Tailscale"
+        ]
       }
-    ]
+    ],
+    "ServerCertThumbprint": ""
   }
 }

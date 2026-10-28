@@ -1,5 +1,7 @@
+using System.Net.Security;
 using Cerberus.Agent;
 using Cerberus.Shared;
+using Microsoft.Extensions.Options;
 
 var paths = new AgentPaths();
 paths.EnsureConfig();
@@ -19,7 +21,27 @@ builder.Services.AddSingleton<CommandExecutor>();
 builder.Services.AddSingleton<ProcessStartWatcher>();
 builder.Services.AddSingleton<PipeServer>();
 builder.Services.AddSingleton<AlertQueue>();
-builder.Services.AddHttpClient<ServerClient>(c => c.Timeout = TimeSpan.FromSeconds(10));
+builder.Services.AddHttpClient<ServerClient>(c => c.Timeout = TimeSpan.FromSeconds(10))
+    .ConfigurePrimaryHttpMessageHandler(sp =>
+    {
+        var options = sp.GetRequiredService<IOptionsMonitor<CerberusOptions>>();
+        return new SocketsHttpHandler
+        {
+            SslOptions = new SslClientAuthenticationOptions
+            {
+                // 設定指紋時只信任該憑證（含自簽）；未設定時走預設鏈驗證
+                RemoteCertificateValidationCallback = (_, cert, _, errors) =>
+                {
+                    var pin = options.CurrentValue.ServerCertThumbprint
+                        ?.Replace(" ", string.Empty).Replace(":", string.Empty);
+                    if (string.IsNullOrEmpty(pin))
+                        return errors == SslPolicyErrors.None;
+                    return cert is not null &&
+                        string.Equals(cert.GetCertHashString(), pin, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+        };
+    });
 
 // AlertQueue / PipeServer 既是服務又被注入，取同一實例
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AlertQueue>());
@@ -30,6 +52,7 @@ builder.Services.AddHostedService<RdpGuard>();
 builder.Services.AddHostedService<HeartbeatWorker>();
 builder.Services.AddHostedService<CommandWorker>();
 builder.Services.AddHostedService<DefenderThreatWatcher>();
+builder.Services.AddHostedService<LoginWatcher>();
 
 var host = builder.Build();
 host.Run();
