@@ -59,6 +59,7 @@ builder.Services.AddHostedService<DefenderThreatWatcher>();
 builder.Services.AddHostedService<LoginWatcher>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<UsbConfigProvider>());
 builder.Services.AddHostedService<UsbWatcher>();
+builder.Services.AddHostedService<ConfigSyncWorker>();
 
 var host = builder.Build();
 host.Run();
