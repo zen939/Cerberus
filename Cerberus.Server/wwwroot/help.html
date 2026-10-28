@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cerberus 功能說明</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #181b22; --border: #272b34; --text: #e6e8ec;
+    --muted: #8b90a0; --accent: #4f8cff; --ok: #3fb950; --warn: #d29922; --bad: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.7; }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .spacer { flex: 1; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  main { padding: 24px 20px; max-width: 980px; margin: 0 auto; }
+  section { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 4px 20px 16px; margin-bottom: 20px; }
+  h2 { font-size: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin: 16px 0 12px; }
+  h3 { font-size: 14px; color: var(--accent); margin: 16px 0 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  code { background: #0b0d11; border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 12px; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; white-space: nowrap; }
+  .p-audit { background: #1f2a3d; color: #8fb3ff; }
+  .p-enforce { background: #3d241f; color: #ff9f8f; }
+  .warn { color: var(--warn); }
+  .bad { color: var(--bad); }
+  .ok { color: var(--ok); }
+  .muted { color: var(--muted); }
+  .note { border-left: 3px solid var(--warn); padding: 6px 12px; background: #1c1a12; border-radius: 0 6px 6px 0; margin: 10px 0; }
+  .reboot { color: var(--warn); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <span>🔥</span><h1>Cerberus 功能說明</h1>
+  <div class="spacer"></div>
+  <a href="/">← 返回管理後台</a>
+</header>
+
+<main>
+  <section>
+    <h2>系統概觀</h2>
+    <p>Cerberus 是企業端點防禦與監控系統，用來阻擋並監控未授權的遠端控制軟體（AnyDesk、TeamViewer、RustDesk、向日葵等）與內網穿透工具，並回報威脅與異常登入。架構為：</p>
+    <ul>
+      <li><b>Agent</b>（端點，SYSTEM 服務）：偵測、處置、回報，並接受 Server 的白名單指令。</li>
+      <li><b>Tray</b>（系統匣）：氣泡通知、狀態顯示。</li>
+      <li><b>Server</b>（本後台）：接收心跳/告警、失聯偵測、Webhook 轉發、下達指令。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>處置模式（Mode）</h2>
+    <table>
+      <tr><th>模式</th><th>行為</th><th>適用</th></tr>
+      <tr><td><span class="pill p-audit">Audit</span></td><td>偵測到只<b>告警、不處置</b>。不殺程序、不停服務、不改設定。</td><td>觀察期、校正誤判</td></tr>
+      <tr><td><span class="pill p-enforce">Enforce</span></td><td>偵測到<b>實際處置</b>：殺整個程序樹 + 停用該工具服務；被開啟的 RDP 改回停用。</td><td>正式阻斷（需先校正簽章名單）</td></tr>
+    </table>
+    <p class="muted">切換：改 <code>%ProgramData%\Cerberus\cerberus.json</code> 的 <code>Mode</code>，存檔即熱重載。<code>AllowedHosts</code> 內的主機即使在 Enforce 也只告警。</p>
+  </section>
+
+  <section>
+    <h2>偵測與監看</h2>
+    <table>
+      <tr><th>功能</th><th>說明</th><th>開關</th></tr>
+      <tr><td>遠端工具偵測</td><td>連線表（TCP/UDP×IPv4/IPv6）+ 程序啟動事件，比對數位簽章 / 版本資訊 / 雜湊，改名也認得。</td><td>核心</td></tr>
+      <tr><td>Defender 威脅回報</td><td>讀 Windows Defender 威脅紀錄，含即時防護自動攔截與各類掃描，發 <code>MalwareDetected</code> 告警。</td><td><code>ReportDefenderThreats</code></td></tr>
+      <tr><td>異常登入偵測</td><td>暴力破解（登入失敗達門檻）、遠端桌面登入、帳號鎖定。</td><td><code>WatchLogons</code></td></tr>
+      <tr><td>RDP 巡檢</td><td>定時檢查本機遠端桌面是否被偷偷開啟；Enforce 下自動改回停用。</td><td><code>GuardRdp</code></td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>遠端指令（後台按鈕）</h2>
+    <p>以 Agent 主動輪詢取得，只接受下列<b>白名單動作</b>，不能執行任意命令：</p>
+    <table>
+      <tr><th>按鈕</th><th>動作</th><th>影響</th></tr>
+      <tr><td>快速掃描</td><td>Defender 快速掃描常見位置</td><td class="muted">掃描期間 CPU/磁碟上升</td></tr>
+      <tr><td>完整掃描</td><td>Defender 完整掃描全碟</td><td class="muted">較久、資源占用較高</td></tr>
+      <tr><td>更新定義</td><td>更新 Defender 病毒碼</td><td class="muted">無副作用</td></tr>
+      <tr><td>強化稽核</td><td>執行強化腳本 <b>只報告</b>現況</td><td class="ok">不改動任何設定</td></tr>
+      <tr><td class="bad">套用強化</td><td>執行強化腳本 <b>-Apply</b>，實際套用全部 9 項</td><td class="warn">改系統設定，見下節</td></tr>
+    </table>
+    <div class="note">建議先按「強化稽核」看會動到什麼，確認無虞（尤其 RDP）再按「套用強化」。</div>
+  </section>
+
+  <section>
+    <h2>「套用強化」逐項說明與影響</h2>
+    <p>以 SYSTEM 權限執行 <code>Harden-Windows.ps1 -Apply</code>，一次套用下列全部項目。每項的現況與結果會回報到「指令紀錄」。</p>
+    <table>
+      <tr><th>#</th><th>項目</th><th>做什麼</th><th>影響 / 風險</th></tr>
+      <tr><td>1</td><td>Defender 即時防護</td><td>確保即時監控開啟</td><td class="ok">無負面；恢復即時掃描</td></tr>
+      <tr><td>2</td><td>防火牆（三設定檔）</td><td>Domain/Private/Public 全開</td><td class="muted">依賴未開放入站埠的服務可能被擋（一般桌面無感）</td></tr>
+      <tr><td>3</td><td class="bad">停用遠端桌面</td><td><code>fDenyTSConnections=1</code></td><td class="bad">⚠️ 會切斷/擋掉 RDP 連入。靠 RDP 管這台機器者勿套用此項</td></tr>
+      <tr><td>4</td><td>停用 SMBv1</td><td>關閉高風險舊檔案共享協定</td><td class="warn">僅支援 SMBv1 的舊 NAS/裝置可能無法存取共享。<span class="reboot">需重開機</span></td></tr>
+      <tr><td>5</td><td>停用 AutoRun/AutoPlay</td><td>所有磁碟 <code>NoDriveTypeAutoRun=0xFF</code></td><td class="ok">插入隨身碟/光碟不再自動執行（需手動開啟）；防惡意程式自動執行</td></tr>
+      <tr><td>6</td><td>PowerShell 稽核記錄</td><td>開 ScriptBlock Logging</td><td class="muted">事件日誌量增加；利於事後鑑識</td></tr>
+      <tr><td>7</td><td>LSA 保護（RunAsPPL）</td><td>保護 LSASS 防憑證竊取</td><td class="warn">少數舊驗證模組/第三方掛鉤可能失效。<span class="reboot">需重開機</span></td></tr>
+      <tr><td>8</td><td>停用 Guest SMB 存取</td><td>關閉不安全的匿名登入</td><td class="muted">匿名存取的共享會失效，需改用認證</td></tr>
+      <tr><td>9</td><td>更新定義 + 快速掃描</td><td>更新病毒碼並掃描</td><td class="muted">掃描期間資源占用上升；無設定變更</td></tr>
+    </table>
+    <div class="note"><b>第 4、7 項需重新開機</b>才生效；<b>第 3 項會關閉 RDP</b>。要單獨套用某幾項，請在命令列用 <code>Harden-Windows.ps1 -Apply -Only Defender,Firewall</code>（後台按鈕一律套用全部）。</div>
+  </section>
+
+  <section>
+    <h2>告警類型</h2>
+    <table>
+      <tr><th>類型</th><th>意義</th></tr>
+      <tr><td><code>Detection</code></td><td>偵測到未授權遠端工具（Enforce 下附處置結果）</td></tr>
+      <tr><td><code>MalwareDetected</code></td><td>Defender 偵測到威脅（病毒名稱、處置、影響檔案）</td></tr>
+      <tr><td><code>LogonFailureBurst</code></td><td>疑似暴力破解（登入失敗達門檻）</td></tr>
+      <tr><td><code>RemoteLogon</code></td><td>遠端桌面（RDP）成功登入</td></tr>
+      <tr><td><code>AccountLockout</code></td><td>帳號遭鎖定</td></tr>
+      <tr><td><code>RdpEnabled</code></td><td>本機遠端桌面被開啟（Enforce 下自動改回）</td></tr>
+      <tr><td><code>AgentStarted / AgentStopped</code></td><td>Agent 啟動 / 正常停止</td></tr>
+      <tr><td><code>HostOffline / HostRecovered</code></td><td>Server 端：主機失聯 3 分鐘 / 恢復</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>連線安全</h2>
+    <ul>
+      <li><b>HMAC-SHA256 簽章</b>：每個 Agent↔Server 請求含簽章 + 時間戳，防竄改、防重放。</li>
+      <li><b>TLS + 憑證釘選</b>：Agent 以憑證指紋信任 Server，自簽亦安全、可擋中間人。</li>
+      <li><b>每台獨立金鑰</b>：以 <code>HostKeys</code> 每台一把，未註冊主機一律拒絕（見 <code>New-HostKey.ps1</code>）。</li>
+      <li><b>指令白名單</b>：Server 只能下達固定動作，即使被攻陷也無法對端點執行任意命令。</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
