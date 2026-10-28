@@ -14,9 +14,16 @@ services:
       # 企業 Webhook（Teams / Slack 相容）；留空則只記錄不轉發
       - Cerberus__WebhookUrl=${CERBERUS_WEBHOOK:-}
       - Cerberus__OfflineThresholdSeconds=180
+      # 告警持久化：DB 存於掛載的 volume，容器重啟後保留
+      - Cerberus__DbPath=/data/cerberus.db
+    volumes:
+      - cerberus-data:/data
     healthcheck:
       # 用容器內的 dotnet 做 TCP 探測，不依賴 wget/curl
       test: ["CMD", "dotnet", "--info"]
       interval: 30s
       timeout: 5s
       retries: 3
+
+volumes:
+  cerberus-data:
