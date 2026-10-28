@@ -17,6 +17,7 @@ builder.Services.AddSingleton<AlertStore>();
 builder.Services.AddSingleton<UsbConfigStore>();
 builder.Services.AddSingleton<EnrolledKeyStore>();
 builder.Services.AddSingleton<ManagedConfigStore>();
+builder.Services.AddSingleton<WebhookSettingsStore>();
 builder.Services.AddSingleton<CommandQueue>();
 builder.Services.AddSingleton<AdminAuth>();
 builder.Services.AddHttpClient<WebhookForwarder>(c => c.Timeout = TimeSpan.FromSeconds(10));
@@ -223,6 +224,21 @@ admin.MapPost("/usb-policy", (UsbConfig cfg, UsbConfigStore usb) =>
     return Results.Ok(usb.Get());
 });
 
+admin.MapGet("/webhook", (WebhookSettingsStore store, IOptionsMonitor<ServerOptions> opts) =>
+    Results.Ok(new { url = store.Get() ?? string.Empty, envDefault = opts.CurrentValue.WebhookUrl }));
+admin.MapPost("/webhook", (WebhookUrlRequest req, WebhookSettingsStore store) =>
+{
+    store.Set(req.Url);
+    return Results.Ok(new { url = store.Get() ?? string.Empty });
+});
+admin.MapPost("/webhook/test", async (WebhookForwarder webhook) =>
+{
+    if (string.IsNullOrWhiteSpace(webhook.EffectiveUrl))
+        return Results.BadRequest("尚未設定 Webhook 網址");
+    await webhook.SendAsync("🔔 Cerberus 測試通知：Webhook 設定正常。");
+    return Results.Ok(new { sent = true, url = webhook.EffectiveUrl });
+});
+
 admin.MapGet("/managed-config", (ManagedConfigStore mc) => Results.Ok(mc.Get()));
 admin.MapPost("/managed-config", (ManagedConfig cfg, ManagedConfigStore mc) =>
 {
@@ -246,3 +262,4 @@ app.MapGet("/health", () => Results.Ok("ok"));
 app.Run();
 
 internal sealed record CommandEnqueueRequest(string HostName, CommandAction Action);
+internal sealed record WebhookUrlRequest(string? Url);

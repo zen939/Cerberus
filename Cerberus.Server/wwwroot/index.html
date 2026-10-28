@@ -44,6 +44,8 @@
   .act { display: flex; gap: 6px; flex-wrap: wrap; }
   .act button { padding: 4px 8px; font-size: 12px; }
   .muted { color: var(--muted); }
+  .ok { color: var(--ok); }
+  .bad { color: var(--bad); }
   .empty { padding: 16px; color: var(--muted); }
   #banner { background: var(--bad); color: #fff; padding: 8px 20px; display: none; }
 </style>
@@ -64,6 +66,19 @@
   <section class="panel">
     <h2>端點主機</h2>
     <div id="hosts"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Webhook 通知</h2>
+    <div style="padding:14px 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <div style="flex:1;min-width:280px">
+        <div class="muted" style="font-size:12px;margin-bottom:4px">推送網址（Teams / Slack incoming webhook，或任何收 POST 的端點；留空＝不推送）</div>
+        <input type="text" id="whUrl" placeholder="https://..." style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px;font-family:monospace;font-size:12px">
+      </div>
+      <button onclick="saveWebhook()">儲存</button>
+      <button class="ghost" onclick="testWebhook()">發送測試</button>
+      <span id="whMsg" class="ok" style="align-self:center"></span>
+    </div>
   </section>
 
   <section class="panel">
@@ -246,6 +261,30 @@ async function saveUsb() {
   } catch (e) {}
 }
 
+async function loadWebhook() {
+  try {
+    const w = await api("/webhook");
+    document.getElementById("whUrl").value = w.url || "";
+  } catch (e) {}
+}
+async function saveWebhook() {
+  try {
+    await api("/webhook", { method:"POST", json:true, body: JSON.stringify({ url: document.getElementById("whUrl").value.trim() }) });
+    whMsgShow("已儲存", true);
+  } catch (e) {}
+}
+async function testWebhook() {
+  try {
+    const r = await fetch("/api/admin/webhook/test", { method:"POST", headers: headers() });
+    whMsgShow(r.ok ? "已發送測試" : "失敗（檢查網址）", r.ok);
+  } catch (e) { whMsgShow("發送失敗", false); }
+}
+function whMsgShow(t, ok) {
+  const el = document.getElementById("whMsg");
+  el.textContent = t; el.className = ok ? "ok" : "bad";
+  setTimeout(() => el.textContent = "", 2500);
+}
+
 async function loadManaged() {
   try {
     const m = await api("/managed-config");
@@ -272,6 +311,7 @@ setInterval(() => {
   refresh();
 }, 5000);
 document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+loadWebhook();
 loadUsb();
 loadManaged();
 refresh();
