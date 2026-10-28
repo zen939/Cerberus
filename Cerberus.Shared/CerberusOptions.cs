@@ -21,6 +21,12 @@ public sealed class CerberusOptions
     public string HostKey { get; set; } = string.Empty;
 
     /// <summary>
+    /// 註冊權杖。HostKey 為空且此值已設時，Agent 首次啟動會向 Server 註冊換取專屬 HostKey
+    /// 並寫回設定，之後即以該金鑰通訊（免去手動派送每台金鑰）。
+    /// </summary>
+    public string EnrollmentToken { get; set; } = string.Empty;
+
+    /// <summary>
     /// Server TLS 憑證指紋（SHA-1，十六進位）。設定後 Agent 只信任此指紋的憑證，
     /// 即使自簽也安全、且可抵擋中間人；留空則走作業系統預設憑證驗證。
     /// </summary>
