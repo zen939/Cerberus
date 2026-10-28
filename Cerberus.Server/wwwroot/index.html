@@ -54,6 +54,7 @@
   <h1>Cerberus 管理後台</h1>
   <span class="muted" id="clock"></span>
   <div class="spacer"></div>
+  <a href="/help.html" style="color:var(--accent);text-decoration:none;margin-right:8px">功能說明</a>
   <input type="password" id="token" placeholder="Admin Token（未設則留空）" style="width:220px">
   <button class="ghost" onclick="saveToken()">套用</button>
 </header>
@@ -63,6 +64,26 @@
   <section class="panel">
     <h2>端點主機</h2>
     <div id="hosts"></div>
+  </section>
+
+  <section class="panel">
+    <h2>USB 管控（全域，Agent 自動套用）</h2>
+    <div style="padding:14px 16px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+      <label>政策：
+        <select id="usbPolicy" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px">
+          <option value="Audit">Audit（只告警）</option>
+          <option value="ReadOnly">ReadOnly（強制唯讀）</option>
+          <option value="Block">Block（非白名單卸載）</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="usbScan"> 接入時自動掃描</label>
+      <div style="flex:1;min-width:220px">
+        <div class="muted" style="font-size:12px;margin-bottom:4px">白名單序號（每行一個）</div>
+        <textarea id="usbAllow" rows="3" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px;font-family:monospace;font-size:12px"></textarea>
+      </div>
+      <button onclick="saveUsb()">儲存政策</button>
+      <span id="usbSaved" class="ok" style="align-self:center"></span>
+    </div>
   </section>
 
   <section class="panel">
@@ -185,12 +206,33 @@ async function refreshAlerts() {
   } catch (e) {}
 }
 
+async function loadUsb() {
+  try {
+    const c = await api("/usb-policy");
+    document.getElementById("usbPolicy").value = c.policy;
+    document.getElementById("usbScan").checked = !!c.scanOnInsert;
+    document.getElementById("usbAllow").value = (c.allowlist || []).join("\n");
+  } catch (e) {}
+}
+async function saveUsb() {
+  const body = {
+    policy: document.getElementById("usbPolicy").value,
+    scanOnInsert: document.getElementById("usbScan").checked,
+    allowlist: document.getElementById("usbAllow").value.split("\n").map(s => s.trim()).filter(Boolean)
+  };
+  try {
+    await api("/usb-policy", { method:"POST", json:true, body: JSON.stringify(body) });
+    const el = document.getElementById("usbSaved"); el.textContent = "已儲存"; setTimeout(() => el.textContent = "", 2000);
+  } catch (e) {}
+}
+
 function refresh() { refreshHosts(); refreshCommands(); refreshAlerts(); }
 setInterval(() => {
   document.getElementById("clock").textContent = new Date().toLocaleTimeString();
   refresh();
 }, 5000);
 document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+loadUsb();
 refresh();
 </script>
 </body>

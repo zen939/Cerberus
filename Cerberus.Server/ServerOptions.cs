@@ -21,6 +21,12 @@ public sealed class ServerOptions
     /// <summary>轉發告警與失聯通知的 Webhook（Teams / Slack / SIEM）。</summary>
     public string WebhookUrl { get; set; } = string.Empty;
 
+    /// <summary>SQLite 資料庫路徑（持久化告警）。容器內建議掛載 volume，如 /data/cerberus.db。</summary>
+    public string DbPath { get; set; } = "cerberus.db";
+
+    /// <summary>資料庫中保留的告警上限。</summary>
+    public int AlertRetention { get; set; } = 50000;
+
     /// <summary>
     /// 管理介面與 /api/admin/* 的簡易權杖。留空＝不設防（僅限開發）。
     /// 正式環境改接公司 OAuth/OIDC：見 AdminAuth.cs 的 TODO。

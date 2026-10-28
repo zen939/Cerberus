@@ -12,6 +12,8 @@ public static class AlertTypes
     public const string LogonFailureBurst = "LogonFailureBurst";
     public const string RemoteLogon = "RemoteLogon";
     public const string AccountLockout = "AccountLockout";
+    public const string UsbInserted = "UsbInserted";
+    public const string UsbBlocked = "UsbBlocked";
     public const string AgentStarted = "AgentStarted";
     public const string AgentStopped = "AgentStopped";
     public const string AgentUnresponsive = "AgentUnresponsive";
@@ -64,6 +66,7 @@ public sealed record PipeMessage
     public const string Ping = "ping";
     public const string Pong = "pong";
     public const string Alert = "alert";
+    public const string Action = "action"; // Tray → 服務：請求執行白名單動作
 
     public required string Kind { get; init; }
     public int? SessionId { get; init; }
@@ -71,6 +74,9 @@ public sealed record PipeMessage
     public string? ServerUrl { get; init; }
     public string? Title { get; init; }
     public string? Text { get; init; }
+
+    /// <summary>Kind=action 時，要執行的 CommandAction 名稱。</summary>
+    public string? ActionName { get; init; }
 }
 
 public static class CerberusJson

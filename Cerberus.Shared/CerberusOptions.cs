@@ -48,6 +48,14 @@ public sealed class CerberusOptions
 
     public int FailedLogonWindowMinutes { get; set; } = 5;
 
+    /// <summary>USB 可移除儲存管控。Server 下發的設定會覆蓋此本機預設。</summary>
+    public UsbConfig Usb { get; set; } = new();
+
+    public int UsbPolicyPollSeconds { get; set; } = 30;
+
+    /// <summary>允許使用者從 Tray 手動觸發強化/掃描（透過服務以 SYSTEM 執行）。</summary>
+    public bool AllowTrayActions { get; set; } = true;
+
     /// <summary>巡檢本機遠端桌面（fDenyTSConnections）。</summary>
     public bool GuardRdp { get; set; } = true;
 
