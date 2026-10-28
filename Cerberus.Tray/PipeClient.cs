@@ -24,6 +24,7 @@ public sealed class PipeClient : IDisposable
     private DateTime _lastPong = DateTime.UtcNow;
     private bool _reportedUnresponsive;
     private string? _serverUrl;
+    private volatile StreamWriter? _writer;
 
     /// <summary>收到 Agent 推送告警（title, text）。</summary>
     public event Action<string, string>? AlertReceived;
@@ -34,6 +35,26 @@ public sealed class PipeClient : IDisposable
     public PipeClient(int sessionId) => _sessionId = sessionId;
 
     public void Start() => _ = RunAsync(_cts.Token);
+
+    public bool IsConnected => _writer is not null;
+
+    /// <summary>請求服務（SYSTEM）執行白名單動作。回傳是否已送出。</summary>
+    public async Task<bool> SendActionAsync(string actionName)
+    {
+        var writer = _writer;
+        if (writer is null)
+            return false;
+        try
+        {
+            await writer.WriteLineAsync(CerberusJson.SerializeLine(
+                new PipeMessage { Kind = PipeMessage.Action, ActionName = actionName }).AsMemory());
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or ObjectDisposedException)
+        {
+            return false;
+        }
+    }
 
     private async Task RunAsync(CancellationToken ct)
     {
@@ -47,6 +68,7 @@ public sealed class PipeClient : IDisposable
                 var utf8 = new UTF8Encoding(false);
                 using var reader = new StreamReader(pipe, utf8);
                 await using var writer = new StreamWriter(pipe, utf8) { AutoFlush = true };
+                _writer = writer;
 
                 _lastPong = DateTime.UtcNow;
                 await writer.WriteLineAsync(CerberusJson.SerializeLine(
@@ -60,6 +82,10 @@ public sealed class PipeClient : IDisposable
             {
                 if (ct.IsCancellationRequested)
                     return;
+            }
+            finally
+            {
+                _writer = null;
             }
 
             StatusChanged?.Invoke(false, null);
