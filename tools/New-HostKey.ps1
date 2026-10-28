@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   為單一端點產生專屬 HMAC 金鑰，並輸出 Agent 端與 Server 端的設定片段。
 

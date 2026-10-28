@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   產生 Cerberus Server 的 TLS 自簽憑證（PFX + CER），並印出指紋供 Agent 釘選。
 

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Windows 端點資安強化快速設定腳本（與 Cerberus 端點守護搭配使用）。
 
