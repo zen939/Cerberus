@@ -19,6 +19,7 @@ builder.Services.AddSingleton<ProcessInspector>();
 builder.Services.AddSingleton<Enforcer>();
 builder.Services.AddSingleton<CommandExecutor>();
 builder.Services.AddSingleton<ProcessStartWatcher>();
+builder.Services.AddSingleton<UsbConfigProvider>();
 builder.Services.AddSingleton<PipeServer>();
 builder.Services.AddSingleton<AlertQueue>();
 builder.Services.AddHttpClient<ServerClient>(c => c.Timeout = TimeSpan.FromSeconds(10))
@@ -53,6 +54,8 @@ builder.Services.AddHostedService<HeartbeatWorker>();
 builder.Services.AddHostedService<CommandWorker>();
 builder.Services.AddHostedService<DefenderThreatWatcher>();
 builder.Services.AddHostedService<LoginWatcher>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<UsbConfigProvider>());
+builder.Services.AddHostedService<UsbWatcher>();
 
 var host = builder.Build();
 host.Run();

@@ -48,6 +48,11 @@ public sealed class CerberusOptions
 
     public int FailedLogonWindowMinutes { get; set; } = 5;
 
+    /// <summary>USB 可移除儲存管控。Server 下發的設定會覆蓋此本機預設。</summary>
+    public UsbConfig Usb { get; set; } = new();
+
+    public int UsbPolicyPollSeconds { get; set; } = 30;
+
     /// <summary>巡檢本機遠端桌面（fDenyTSConnections）。</summary>
     public bool GuardRdp { get; set; } = true;
 
