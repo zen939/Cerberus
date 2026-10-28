@@ -11,6 +11,8 @@ services:
     environment:
       # 共用 HMAC 金鑰（正式環境請改用 Cerberus__HostKeys__<主機名> 個別派送）
       - Cerberus__DefaultKey=${CERBERUS_KEY:-change-me-please}
+      # 註冊權杖：Agent 以此換取專屬 HostKey（留空＝停用註冊）
+      - Cerberus__EnrollmentToken=${CERBERUS_ENROLL_TOKEN:-}
       # 企業 Webhook（Teams / Slack 相容）；留空則只記錄不轉發
       - Cerberus__WebhookUrl=${CERBERUS_WEBHOOK:-}
       - Cerberus__OfflineThresholdSeconds=180

@@ -171,6 +171,7 @@
         ]
       }
     ],
-    "ServerCertThumbprint": ""
+    "ServerCertThumbprint": "",
+    "EnrollmentToken": ""
   }
 }

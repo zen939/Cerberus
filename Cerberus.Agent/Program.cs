@@ -6,6 +6,9 @@ using Microsoft.Extensions.Options;
 var paths = new AgentPaths();
 paths.EnsureConfig();
 
+// 首次啟動若設有 EnrollmentToken 且無 HostKey，先向 Server 註冊換取專屬金鑰（寫回設定）
+await Enrollment.EnsureEnrolledAsync(paths);
+
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddWindowsService(options => options.ServiceName = "CerberusAgent");

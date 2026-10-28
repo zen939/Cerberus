@@ -150,12 +150,13 @@ async function refreshHosts() {
     const hosts = await api("/hosts");
     const el = document.getElementById("hosts");
     if (!hosts.length) { el.innerHTML = '<div class="empty">尚無主機回報</div>'; return; }
-    let h = "<table><tr><th>主機</th><th>使用者</th><th>模式</th><th>版本</th><th>最後心跳</th><th>動作</th></tr>";
+    let h = "<table><tr><th>主機</th><th>使用者</th><th>作業系統</th><th>模式</th><th>版本</th><th>最後心跳</th><th>動作</th></tr>";
     for (const x of hosts) {
       const buttons = ACTIONS.map(a => `<button onclick="sendCmd('${esc(x.hostName)}','${a[0]}')">${a[1]}</button>`).join("");
       h += `<tr>
         <td><span class="dot ${x.online?'on':'off'}"></span>${esc(x.hostName)}</td>
         <td>${esc(x.userName)}</td>
+        <td class="muted">${esc(x.osVersion)}</td>
         <td><span class="badge ${x.mode==='Enforce'?'b-enforce':'b-audit'}">${esc(x.mode)}</span></td>
         <td class="muted">${esc(x.agentVersion)}</td>
         <td class="muted">${timeAgo(x.lastSeen)}</td>

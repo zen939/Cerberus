@@ -10,6 +10,12 @@ public sealed class ServerOptions
     /// <summary>找不到專屬金鑰時的共用金鑰（建議仍以 HostKeys 為主）。</summary>
     public string DefaultKey { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 註冊權杖（共用部署祕密）。Agent 以此權杖呼叫 /api/enroll 換取專屬 HostKey。
+    /// 留空＝停用註冊。
+    /// </summary>
+    public string EnrollmentToken { get; set; } = string.Empty;
+
     /// <summary>允許的時間戳誤差（秒），防重放。</summary>
     public int ClockSkewSeconds { get; set; } = 300;
 

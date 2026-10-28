@@ -46,6 +46,21 @@ public sealed record HeartbeatMessage
     public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.UtcNow;
     public required string AgentVersion { get; init; }
     public EnforcementMode Mode { get; init; }
+    public string? OsVersion { get; init; }
+}
+
+/// <summary>Agent 首次啟動以 enrollment token 向 Server 註冊，換取專屬 HostKey。</summary>
+public sealed record EnrollRequest
+{
+    public required string HostName { get; init; }
+    public required string Token { get; init; }
+    public string? OsVersion { get; init; }
+    public string? AgentVersion { get; init; }
+}
+
+public sealed record EnrollResponse
+{
+    public required string HostKey { get; init; }
 }
 
 /// <summary>Tray 在服務失聯時送出的回報（未簽章，Server 端標註為未驗證來源）。</summary>

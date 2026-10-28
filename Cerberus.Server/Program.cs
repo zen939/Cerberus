@@ -15,6 +15,7 @@ builder.Services.Configure<ServerOptions>(builder.Configuration.GetSection(Serve
 builder.Services.AddSingleton<HostRegistry>();
 builder.Services.AddSingleton<AlertStore>();
 builder.Services.AddSingleton<UsbConfigStore>();
+builder.Services.AddSingleton<EnrolledKeyStore>();
 builder.Services.AddSingleton<CommandQueue>();
 builder.Services.AddSingleton<AdminAuth>();
 builder.Services.AddHttpClient<WebhookForwarder>(c => c.Timeout = TimeSpan.FromSeconds(10));
@@ -64,8 +65,11 @@ static async Task<string?> VerifyAsync(HttpContext ctx, IOptionsMonitor<ServerOp
         return null;
     }
 
+    // 金鑰優先序：設定檔 HostKeys > 已註冊金鑰 > 共用 DefaultKey
     bool perHost = options.HostKeys.TryGetValue(host, out var key) && !string.IsNullOrEmpty(key);
     if (!perHost)
+        key = ctx.RequestServices.GetRequiredService<EnrolledKeyStore>().GetKey(host);
+    if (string.IsNullOrEmpty(key))
         key = options.DefaultKey;
 
     if (string.IsNullOrEmpty(key) || !HmacSigner.Verify(key, ts, body, signature))
@@ -158,6 +162,27 @@ app.MapPost("/api/command-result", async (HttpContext ctx, IOptionsMonitor<Serve
     lf.CreateLogger("Command").LogInformation("指令 {Id} 於 {Host} 完成：success={Ok}",
         result.CommandId, result.HostName, result.Success);
     return Results.Ok();
+});
+
+// Agent 首次註冊：以 enrollment token 換取專屬 HostKey（不走 HMAC，因此時尚無金鑰）
+app.MapPost("/api/enroll", (EnrollRequest req, IOptionsMonitor<ServerOptions> opts,
+    EnrolledKeyStore store, ILoggerFactory lf) =>
+{
+    var expected = opts.CurrentValue.EnrollmentToken;
+    if (string.IsNullOrEmpty(expected))
+        return Results.StatusCode(StatusCodes.Status403Forbidden); // 未啟用註冊
+
+    var given = System.Text.Encoding.UTF8.GetBytes(req.Token);
+    var exp = System.Text.Encoding.UTF8.GetBytes(expected);
+    if (given.Length != exp.Length || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(given, exp))
+    {
+        lf.CreateLogger("Enroll").LogWarning("主機 {Host} 註冊失敗：權杖不符", req.HostName);
+        return Results.Unauthorized();
+    }
+
+    var key = store.GetOrCreate(req.HostName);
+    lf.CreateLogger("Enroll").LogInformation("主機 {Host} 已註冊（OS={Os}, Agent={Ver}）", req.HostName, req.OsVersion, req.AgentVersion);
+    return Results.Ok(new EnrollResponse { HostKey = key });
 });
 
 // Agent 取得目前 USB 管控政策（HMAC）
